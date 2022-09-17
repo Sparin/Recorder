@@ -1,9 +1,13 @@
 ﻿using System.Diagnostics;
-using Recorder.Gdi;
+
+using Microsoft.Extensions.Logging;
+
+using Recorder.DirectX;
 
 using Sparin.Screenshot.Interop;
 
 using SkiaSharp;
+
 
 namespace Recorder
 {
@@ -12,11 +16,18 @@ namespace Recorder
         static async Task Main(string[] args)
         {
             ShellScalingApi.SetProcessDpiAwareness(ShellScalingApi.PROCESS_DPI_AWARENESS.Process_Per_Monitor_DPI_Aware);
+            using var loggerFactory = LoggerFactory.Create(builder =>
+            {
+                builder.AddConsole();
+                builder.SetMinimumLevel(LogLevel.Debug);
+            });
+            var logger = loggerFactory.CreateLogger<DirectXFrameSource>();
+            //var s = Path.GetDirectoryName("H:\\Desktop\\ffmpeg-5.1-full_build\\bin\\ffmpeg.exe");
 
-            var frameSource = GdiFrameSource.Create();
-            Console.WriteLine($"Start Time {DateTime.Now.ToLongTimeString()}");
+            //var frameSource = GdiFrameSource.Create(loggerFactory.CreateLogger<GdiFrameSource>());
+            var frameSource = new DirectXFrameSource(logger);//GdiFrameSource.Create();
+            //frameSource.PrintDiagnosticInformation(Console.Out);
             await SaveVideo(frameSource);
-            Console.WriteLine($"End Time {DateTime.Now.ToLongTimeString()}");
             //SaveJpgs(frameSource);
         }
 
@@ -33,8 +44,9 @@ namespace Recorder
                 $"-i pipe:0 " +
                 $"-vf \"setpts='(RTCTIME - RTCSTART) / (TB * 1000000)'\" " +
                 $"-s {frameSource.Width}x{frameSource.Height} " +
-                $"-r 5 " +
-                $"-fps_mode vfr " +
+                $"-r 60 " +
+                $"-fps_mode cfr " +
+                //$"-c:v libx264 -preset superfast " +
                 $"{outputFilename}")
             {
                 RedirectStandardInput = true
@@ -42,10 +54,24 @@ namespace Recorder
 
             var ffmpegProcess = Process.Start(ffmpegStartInfo) ?? throw new Exception("ffmpeg didn't started");
 
+            var fps = 1000l / 60;
+            var watch = new Stopwatch();
+            long start=0, end=0;
+            watch.Restart();
             while (!ffmpegProcess.HasExited && ffmpegProcess.StandardInput.BaseStream.CanWrite)
             {
+                if (watch.ElapsedMilliseconds < fps - end + start)
+                    continue;
+
+
+                start = watch.ElapsedMilliseconds;
                 var rawFrame = frameSource.AcquireNextFrame();
                 await ffmpegProcess.StandardInput.BaseStream.WriteAsync(rawFrame);
+                end = watch.ElapsedMilliseconds;
+                Console.WriteLine(
+                    $"Frame rendered in {watch.ElapsedMilliseconds} ms ({(watch.ElapsedMilliseconds != 0 ? 1000 / watch.ElapsedMilliseconds : 0)} FPS)");
+                watch.Restart();
+
             }
         }
 
