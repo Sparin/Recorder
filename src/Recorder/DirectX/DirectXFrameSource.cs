@@ -47,7 +47,12 @@ namespace Recorder.DirectX
             {
                 using var frame = outputDuplication.AcquireNextFrame(500);
                 var s = outputDuplication.Parent.Description.DesktopCoordinates;
-                DeviceContext.CopySubResourceRegion(SharedBuffer, (uint)s.Origin.X, (uint)s.Origin.Y, frame, new Box(0, 0, 0, (uint)(s.Size.X - s.Origin.X ), (uint)(s.Size.Y - s.Origin.Y), 1));
+                DeviceContext.CopySubResourceRegion(
+                    SharedBuffer,
+                    (uint)(s.Origin.X - _dimensions.X),
+                    (uint)(s.Origin.Y - _dimensions.Y),
+                    frame,
+                    new Box(0, 0, 0, (uint)(s.Size.X - s.Origin.X), (uint)(s.Size.Y - s.Origin.Y), 1));
             }
 
             using var surface = SharedBuffer.GetSurface();
