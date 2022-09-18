@@ -26,9 +26,9 @@ namespace Recorder
 
             //var frameSource = GdiFrameSource.Create(loggerFactory.CreateLogger<GdiFrameSource>());
             var frameSource = new DirectXFrameSource(logger);//GdiFrameSource.Create();
-            //frameSource.PrintDiagnosticInformation(Console.Out);
-            await SaveVideo(frameSource);
-            //SaveJpgs(frameSource);
+            frameSource.PrintDiagnosticInformation(Console.Out);
+            //await SaveVideo(frameSource);
+            await SaveJpgs(frameSource);
         }
 
         private static async Task SaveVideo(IFrameSource frameSource)
@@ -75,7 +75,7 @@ namespace Recorder
             }
         }
 
-        private static unsafe void SaveJpgs(IFrameSource frameSource)
+        private static unsafe Task SaveJpgs(IFrameSource frameSource)
         {
             const string outputDir = "./output";
             Directory.CreateDirectory(outputDir);
@@ -99,11 +99,13 @@ namespace Recorder
                 // https://stackoverflow.com/questions/61199265/what-is-the-difference-between-installpixels-and-setpixels-in-skiasharp
                 skBitmap.SetPixels((IntPtr)rawImageHandle.Pointer);
 
-                skBitmap.Encode(fileStream, SKEncodedImageFormat.Jpeg, 100);
+                //skBitmap.Encode(fileStream, SKEncodedImageFormat.Jpeg, 100);
 
                 Console.WriteLine(
                     $"Frame #{i} rendered in {watch.ElapsedMilliseconds} ms ({(watch.ElapsedMilliseconds != 0 ? 1000 / watch.ElapsedMilliseconds : 0)} FPS)");
             }
+
+            return Task.CompletedTask;
         }
     }
 }

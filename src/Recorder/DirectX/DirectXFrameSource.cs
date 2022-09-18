@@ -45,9 +45,112 @@ namespace Recorder.DirectX
         {
             foreach (var outputDuplication in _outputDuplications)
             {
-                using var frame = outputDuplication.AcquireNextFrame(500);
+                using var frame = outputDuplication.AcquireNextFrame(500000);
                 var s = outputDuplication.Parent.Description.DesktopCoordinates;
-                DeviceContext.CopySubResourceRegion(SharedBuffer, (uint)s.Origin.X, (uint)s.Origin.Y, frame, new Box(0, 0, 0, (uint)(s.Size.X - s.Origin.X ), (uint)(s.Size.Y - s.Origin.Y), 1));
+
+                D3DTexture2D? fr = null;
+                if (outputDuplication.Parent.Description.Rotation != ModeRotation.Identity)
+                {
+                    var frameDesc = frame.Description;
+                    frameDesc.SampleDesc = new SampleDesc(1, 0);
+                    frameDesc.CPUAccessFlags = (uint)CpuAccessFlag.Read;
+                    frameDesc.BindFlags = 0;
+                    frameDesc.MipLevels = 1;
+                    frameDesc.MiscFlags = 0;
+                    frameDesc.ArraySize = 1;
+                    frameDesc.Usage = Usage.Staging;
+                    fr = Device.CreateTexture2D(frameDesc);
+                    DeviceContext.CopyResource(fr, frame);
+                }
+
+                switch (outputDuplication.Parent.Description.Rotation)
+                {
+                    case ModeRotation.None:
+                    case ModeRotation.Identity:
+                    default:
+                        DeviceContext.CopySubResourceRegion(SharedBuffer, (uint)(s.Origin.X - _dimensions.X),
+                            (uint)(s.Origin.Y - _dimensions.Y),
+                            frame, new Box(0, 0, 0, (uint)(s.Size.X - s.Origin.X), (uint)(s.Size.Y - s.Origin.Y), 1));
+                        break;
+
+                    case ModeRotation.Rotate180:
+                        using (var sharedSurface = SharedBuffer.GetSurface())
+                        using (var frameSurface = fr.GetSurface())
+                        {
+                            var sharedMap = sharedSurface.Map(DXGI.MapWrite);
+                            var frameMap = frameSurface.Map(DXGI.MapRead);
+                            Parallel.For(0, s.Size.Y - s.Origin.Y, y =>
+                            {
+                                Parallel.For(0, s.Size.X - s.Origin.X, x =>
+                                {
+                                    var srcX = frame.Description.Width - x;
+                                    var srcY = frame.Description.Height - y;
+                                    var dstX = s.Origin.X - _dimensions.X + x;
+                                    var dstY = s.Origin.Y - _dimensions.Y + y;
+
+                                    var srcRowPtr = frameMap.Pitch * (srcY - 1);
+                                    var dstRowPtr = sharedMap.Pitch * dstY;
+
+                                    for (var i = 0; i < 4; i++)
+                                        sharedMap.PBits[dstRowPtr + dstX * 4 + i] =
+                                            frameMap.PBits[srcRowPtr + (srcX - 1) * 4 + i];
+                                });
+                            });
+                            frameSurface.Unmap();
+                            sharedSurface.Unmap();
+                        }
+
+                        break;
+
+                    case ModeRotation.Rotate90:
+                    case ModeRotation.Rotate270:
+                        using (var sharedSurface = SharedBuffer.GetSurface())
+                        using (var frameSurface = fr.GetSurface())
+                        {
+                            var sharedMap = sharedSurface.Map(DXGI.MapWrite);
+                            var frameMap = frameSurface.Map(DXGI.MapRead);
+
+                            if (outputDuplication.Parent.Description.Rotation == ModeRotation.Rotate90)
+                                for (var x = 0; x < (uint)(s.Size.X - s.Origin.X); x++)
+                                for (var y = 0; y < (uint)(s.Size.Y - s.Origin.Y); y++)
+                                {
+                                    var srcX = y;
+                                    var srcY = frame.Description.Height - x;
+
+                                    var dstX = s.Origin.X - _dimensions.X + x;
+                                    var dstY = s.Origin.Y - _dimensions.Y + y;
+
+                                    var srcRowPtr = frameMap.Pitch * srcY;
+                                    var dstRowPtr = sharedMap.Pitch * dstY;
+                                    for (var i = 0; i < 4; i++)
+                                        sharedMap.PBits[dstRowPtr + dstX * 4 + i] =
+                                            frameMap.PBits[srcRowPtr + srcX * 4 + i];
+                                }
+                            else
+                                for (var x = 0; x <= (uint)(s.Size.X - s.Origin.X); x++)
+                                for (var y = 0; y < (uint)(s.Size.Y - s.Origin.Y); y++)
+                                {
+                                    var srcX = frame.Description.Width - y;
+                                    var srcY = frame.Description.Height - x;
+
+                                    var dstX = s.Origin.X - _dimensions.X + frame.Description.Height - x;
+                                    var dstY = s.Origin.Y - _dimensions.Y + y;
+
+                                    var srcRowPtr = frameMap.Pitch * srcY;
+                                    var dstRowPtr = sharedMap.Pitch * dstY;
+                                    for (var i = 0; i < 4; i++)
+                                        sharedMap.PBits[dstRowPtr + dstX * 4 + i] =
+                                            frameMap.PBits[srcRowPtr + (srcX - 1) * 4 + i];
+                                }
+
+                            frameSurface.Unmap();
+                            sharedSurface.Unmap();
+                        }
+
+                        break;
+                }
+
+                fr?.Dispose();
             }
 
             using var surface = SharedBuffer.GetSurface();
@@ -150,7 +253,7 @@ namespace Recorder.DirectX
                 SampleDesc = new SampleDesc(1, 0),
                 Usage = Usage.Staging,
                 BindFlags = 0,//(uint)(BindFlag.RenderTarget | BindFlag.ShaderResource),
-                CPUAccessFlags = (uint)CpuAccessFlag.Read,
+                CPUAccessFlags = (uint)(CpuAccessFlag.Read | CpuAccessFlag.Write),
                 MiscFlags = 0//(uint)ResourceMiscFlag.SharedKeyedmutex 
             };
 

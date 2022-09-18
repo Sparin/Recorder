@@ -23,7 +23,7 @@ namespace Recorder.DirectX
                 ? throw new ArgumentNullException(nameof(texture))
                 : texture;
 
-            //UpdateDescription();
+            UpdateDescription();
         }
 
         public Surface GetSurface()
