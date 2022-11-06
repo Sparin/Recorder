@@ -3,7 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.3.32825.248
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Recorder", "src\Recorder\Recorder.csproj", "{B1746308-5B5E-4275-A7DB-3A7BB64D7F0E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Recorder", "src\Recorder\Recorder.csproj", "{B1746308-5B5E-4275-A7DB-3A7BB64D7F0E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Recorder.Direct3D11", "Recorder.Direct3D11\Recorder.Direct3D11.csproj", "{24D7930C-2A8A-4E2A-B299-859C254D2F4F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Testify", "Testify\Testify.csproj", "{F26DAA78-95B8-464D-99B1-1A2618E88F31}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +19,14 @@ Global
 		{B1746308-5B5E-4275-A7DB-3A7BB64D7F0E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B1746308-5B5E-4275-A7DB-3A7BB64D7F0E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B1746308-5B5E-4275-A7DB-3A7BB64D7F0E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{24D7930C-2A8A-4E2A-B299-859C254D2F4F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{24D7930C-2A8A-4E2A-B299-859C254D2F4F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{24D7930C-2A8A-4E2A-B299-859C254D2F4F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{24D7930C-2A8A-4E2A-B299-859C254D2F4F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F26DAA78-95B8-464D-99B1-1A2618E88F31}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F26DAA78-95B8-464D-99B1-1A2618E88F31}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F26DAA78-95B8-464D-99B1-1A2618E88F31}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F26DAA78-95B8-464D-99B1-1A2618E88F31}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

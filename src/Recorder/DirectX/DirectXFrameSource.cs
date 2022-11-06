@@ -45,14 +45,35 @@ namespace Recorder.DirectX
         {
             foreach (var outputDuplication in _outputDuplications)
             {
-                using var frame = outputDuplication.AcquireNextFrame(500);
+                using var frame = outputDuplication.AcquireNextFrame(50000);
                 var s = outputDuplication.Parent.Description.DesktopCoordinates;
-                DeviceContext.CopySubResourceRegion(
-                    SharedBuffer,
-                    (uint)(s.Origin.X - _dimensions.X),
-                    (uint)(s.Origin.Y - _dimensions.Y),
-                    frame,
-                    new Box(0, 0, 0, (uint)(s.Size.X - s.Origin.X), (uint)(s.Size.Y - s.Origin.Y), 1));
+                if (outputDuplication.Parent.Description.Rotation == ModeRotation.Identity)
+                {
+                    DeviceContext.CopySubResourceRegion(
+                        SharedBuffer,
+                        (uint)(s.Origin.X - _dimensions.X),
+                        (uint)(s.Origin.Y - _dimensions.Y),
+                        frame,
+                        new Box(0, 0, 0, (uint)(s.Size.X - s.Origin.X), (uint)(s.Size.Y - s.Origin.Y), 1));
+                }
+                else
+                {
+                    var width = s.Size.X - s.Origin.X;
+                    var height = (uint)(s.Size.Y - s.Origin.Y);
+
+                    for (uint x = 0; x < width; x++)
+                    {
+                        for (uint y = 0; y < height; y++)
+                        {
+                            DeviceContext.CopySubResourceRegion(
+                                SharedBuffer,
+                                (uint)(s.Origin.X - _dimensions.X + y),
+                                (uint)(s.Origin.Y - _dimensions.Y + x),
+                                frame,
+                                new Box(x, y, 0, x + 1, y+1, 1));
+                        }
+                    }
+                }
             }
 
             using var surface = SharedBuffer.GetSurface();
